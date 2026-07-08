@@ -1153,6 +1153,31 @@
     const rect = anchorEl.getBoundingClientRect();
     pop.style.left = (rect.left + window.scrollX) + 'px';
     pop.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    // "Select all" master checkbox — checked when nothing is excluded, unchecked
+    // when everything is excluded, indeterminate when it's a mixed selection.
+    // Toggling it clears/fills the exclusion set for the whole field at once.
+    const allSelected = uniqueVals.every(v => !state.filters[field].has(v));
+    const noneSelected = uniqueVals.every(v => state.filters[field].has(v));
+    const selectAllRow = document.createElement('label');
+    selectAllRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:3px 2px 7px; margin-bottom:5px; border-bottom:1px solid var(--border); cursor:pointer; color:var(--amber); font-weight:600;';
+    const selectAllCb = document.createElement('input');
+    selectAllCb.type = 'checkbox';
+    selectAllCb.style.accentColor = 'var(--amber)';
+    selectAllCb.checked = allSelected;
+    selectAllCb.indeterminate = !allSelected && !noneSelected;
+    const selectAllLabel = document.createElement('span');
+    selectAllLabel.textContent = 'Select all';
+    selectAllRow.appendChild(selectAllCb);
+    selectAllRow.appendChild(selectAllLabel);
+    selectAllCb.addEventListener('change', (e)=>{
+      if(e.target.checked) state.filters[field].clear();
+      else uniqueVals.forEach(v=> state.filters[field].add(v));
+      renderFiltersZone();
+      renderResult();
+      openFilterEditor(field, anchorEl); // rebuild popover so every row checkbox reflects the new state
+    });
+    pop.appendChild(selectAllRow);
+
     uniqueVals.forEach(val=>{
       const row = document.createElement('label');
       row.style.cssText = 'display:flex; align-items:center; gap:6px; padding:3px 2px; cursor:pointer; color:var(--text);';
@@ -1170,6 +1195,10 @@
         else state.filters[field].add(val);
         renderFiltersZone();
         renderResult();
+        const nowAllSelected = uniqueVals.every(v => !state.filters[field].has(v));
+        const nowNoneSelected = uniqueVals.every(v => state.filters[field].has(v));
+        selectAllCb.checked = nowAllSelected;
+        selectAllCb.indeterminate = !nowAllSelected && !nowNoneSelected;
       });
       pop.appendChild(row);
     });
